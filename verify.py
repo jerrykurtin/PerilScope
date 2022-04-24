@@ -1,4 +1,5 @@
 import torch
+import gc
 
 
 print("Device capability:", torch.cuda.get_device_capability())

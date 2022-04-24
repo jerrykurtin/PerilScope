@@ -1,10 +1,12 @@
-from tkinter import DISABLED
 import cv2
 import numpy as np
 import serial
 from elements.yolo import OBJ_DETECTION
-import time
 from collections import deque
+import time
+
+import gc
+from tkinter import DISABLED
 
 # ----------------------variables and setup------------------------------------
 # BGR
@@ -19,8 +21,11 @@ BLUE2 = (0, 255, 102)
 LIDAR_ATTEMPTS = 5
 LIDAR_WINDOW = 7   # Frames
 LIDAR_INTERVAL = 5
-SPD_THRESH = 1
-ALERT_THRESH = 2
+SPD_THRESH = 0.5
+ALERT_THRESH = 1.5
+# DEBUG
+SPD_THRESH = 0
+ALERT_THRESH = 0.2
 WIDTH, HEIGHT = 1280, 720
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 VIDEO_TYPE = cv2.VideoWriter_fourcc(*'XVID')
@@ -28,11 +33,11 @@ VIDEO_TYPE = cv2.VideoWriter_fourcc(*'XVID')
 debug = False
 save = False
 model = "yolov5s.pt"
-filename = "debug_{:.2f}.mp4".format(time.time())
+filename = "context_tests_{:.2f}.mp4".format(time.time())
 
 # attention_obj = set(['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'fire hydrant', 'stop sign', 'parking meter', 'cat', 'dog', 'backpack', 'handbag', 'suitcase', 'skateboard', 'bottle', 'knife'])
 
-important_obj = set(['person', 'bicycle', 'car', 'motorcycle', 'bus', 'train', 'truck', 'boat', 'skateboard', 'knife', 'bottle', 'backpack', 'handbag', 'suitcase'])
+important_obj = set(['person', 'bicycle', 'car', 'motorcycle', 'bus', 'train', 'truck', 'skateboard', 'knife', 'scissors', 'bottle', 'backpack', 'handbag', 'suitcase'])
 dangerous_obj = set(['person', 'knife', 'scissors'])
  
 Object_classes = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
@@ -206,17 +211,47 @@ if cap.isOpened():
                 [(xmin,ymin),(xmax,ymax)] = obj['bbox']
                 frame = cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), color, 2) 
                 # frame = cv2.putText(frame, f'{label} ({str(score)})', (xmin,ymin), FONT, 0.75, color, 1, cv2.LINE_AA)
-                frame = cv2.putText(frame, f'{label}', (xmin,ymin), FONT, 0.75, color, 1, cv2.LINE_AA)
+                frame = cv2.putText(frame, f'{label}', (xmin,ymin+3), FONT, 0.75, color, 1, cv2.LINE_AA)
 
         # Determine context
+        panik = False
         if len(distances) >= LIDAR_WINDOW and tick % LIDAR_INTERVAL == 0:
             speed, direct = direction_context(list(distances))
-        
+        if abs(speed) > SPD_THRESH:
+            panik = True
         if d_msg[1] == "---":
             d_msg = "Distance: {} ft. Speed: {} mph. Confidence: {}".format(d_msg[0], d_msg[0], d_msg[1])
         else:
             d_msg = "Distance: {:.2f} ft. Speed: {:.2f} mph. Confidence: {}".format(d_msg[0], speed * 2.23694, d_msg[1])
-        in_frame = "HUMAN"
+        
+        obj_list = [obj['label'] for obj in objs]
+        in_frame = "Object"
+        person, vehicle, small_vehicle, weapon = False, False, False, False
+        if ret and direct > 0:
+            if 'person' in obj_list:
+                person = True
+            # small vehicle
+            if 'bicycle' in obj_list or 'skateboard' in obj_list:
+                small_vehicle = True
+            if 'car' in obj_list or 'motorcycle' in obj_list or 'bus' in obj_list or 'train' in obj_list or 'truck' in obj_list:
+                vehicle = True
+            if 'knife' in obj_list or 'scissors' in obj_list:
+                weapon = True
+        if person:
+            in_frame = "Person"
+        if weapon:
+            panik = True
+            in_frame = "Armed " + in_frame.lower()
+        if vehicle:
+            if not person:
+                in_frame = "Vehicle"
+            else:
+                in_frame += " in vehicle"
+        elif small_vehicle:
+            if not person:
+                in_frame = "Small vehicle"
+            in_frame += " in small vehicle"
+
         direction = "front"
 
 
@@ -253,6 +288,8 @@ if cap.isOpened():
     ser.close()
     cap.release()
     cv2.destroyAllWindows()
+    del Object_detector
+    gc.collect()
     print("Successfully exited program")
 else:
     print("Unable to open camera")
