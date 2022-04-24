@@ -25,20 +25,20 @@ SPD_THRESH = 0.5
 ALERT_THRESH = 1.5
 # DEBUG
 SPD_THRESH = 0
-ALERT_THRESH = 0.2
+ALERT_THRESH = 0.5
 WIDTH, HEIGHT = 1280, 720
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 VIDEO_TYPE = cv2.VideoWriter_fourcc(*'XVID')
 
 debug = False
-save = False
+save = True
 model = "yolov5s.pt"
-filename = "context_tests_{:.2f}.mp4".format(time.time())
+filename = "context_tests2_{:.2f}.mp4".format(time.time())
 
 # attention_obj = set(['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'fire hydrant', 'stop sign', 'parking meter', 'cat', 'dog', 'backpack', 'handbag', 'suitcase', 'skateboard', 'bottle', 'knife'])
 
 important_obj = set(['person', 'bicycle', 'car', 'motorcycle', 'bus', 'train', 'truck', 'skateboard', 'knife', 'scissors', 'bottle', 'backpack', 'handbag', 'suitcase'])
-dangerous_obj = set(['person', 'knife', 'scissors'])
+dangerous_obj = set(['knife', 'scissors'])
  
 Object_classes = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
                 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
@@ -141,8 +141,6 @@ if cap.isOpened():
 
     while cv2.getWindowProperty("PerilScope Live Feed", 0) >= 0:
         tick += 1
-        if tick % LIDAR_INTERVAL == 0:
-            window_start = time.time()
         # exclude the first few frames
         if flag > 0: 
             flag -= 1
@@ -154,6 +152,8 @@ if cap.isOpened():
         # Read a frame
         frames += 1
         ret, frame = cap.read()
+        if tick % LIDAR_INTERVAL == 0:
+            window_start = time.time()
 
         # read/process lidar signal
         confident_lidar = False
@@ -266,7 +266,7 @@ if cap.isOpened():
             # aware mode
             msg = "{} {} {}".format(in_frame, "approaching" if direct == 1 else "retreating", direction)
             # alert mode
-            if speed > SPD_THRESH:
+            if abs(speed) > SPD_THRESH:
                 msg = msg.upper()
                 frame = cv2.rectangle(frame, (0,0), (WIDTH, HEIGHT), RED, 5)
             textSize = cv2.getTextSize(msg, FONT, 1, 2)[0]
