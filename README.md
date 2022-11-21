@@ -6,7 +6,7 @@
 This is the source code for PerilScope, a monitoring system for police vehicles that sends smart alerts for objects and events detected around the vehicle. This placed 1st overall at Aggies Invent: First Responders, the premier 48-hour design contest at Texas A&M open to all undergraduates and grad students.
 
 ## Performance
-Image detection is accurate at a distance of 100 feet, and distance metrics are accurate to 40 feet. Predictions occur over 4 times per second, leading to a response time of .189 seconds for an approaching object. An example of an alert sent to the officer is shown below. Some examples of alerts programmed to work are: "armed person approaching front," "person in vehicle retreating to the left," and "armed person on bicycle approaching from the right."
+Image detection is accurate at a distance of 100 feet, and distance metrics are accurate to 40 feet. Predictions occur over 4 times per second, leading to a response time of .189 seconds for an approaching object. Some examples of alerts programmed to work are: "armed person approaching front," "person in vehicle retreating to the left," and "armed person on bicycle approaching from the right." One such example is shown below.
 <p align="center">
   <img width = "400" src="media/perilscope_context.png"/>
 </p>
